@@ -149,7 +149,9 @@ A numeric argument serves as a repeat count."
   (shell-command-on-region (point-min) (point-max)
                            "git commit -F- --cleanup=strip")
   (with-current-buffer log-edit-parent-buffer
-    (gitsum-refresh)))
+    (if gitsum-reuse-buffer
+        (gitsum-refresh)
+      (kill-buffer))))
 
 (defun gitsum-kill-buffer ()
   "Kill the current buffer if it has no manual changes."
