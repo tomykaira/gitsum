@@ -60,6 +60,10 @@ A numeric argument serves as a repeat count."
   (let ((inhibit-read-only t))
     (undo)))
 
+(defun gitsum-git-command (command)
+  (let ((dir (git-get-top-dir default-directory)))
+    (concat "cd " dir "; " command)))
+
 (defun gitsum-refresh (&optional arguments)
   "Regenerate the patch based on the current state of the index."
   (interactive)
@@ -96,10 +100,10 @@ A numeric argument serves as a repeat count."
 (defun gitsum-commit ()
   "Commit the patch as-is, asking for a commit message."
   (interactive)
-  (shell-command-on-region (point-min) (point-max) "git apply --check --cached")
   (let ((buffer (get-buffer-create "*gitsum-commit*"))
         (dir (git-get-top-dir default-directory)))
-    (shell-command-on-region (point-min) (point-max) "(cat; git diff --cached) | git apply --stat" buffer)
+    (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --check --cached"))
+    (shell-command-on-region (point-min) (point-max) (gitsum-git-command "(cat; git diff --cached) | git apply --stat") buffer)
     (with-current-buffer buffer
       (setq default-directory dir)
       (goto-char (point-min))
@@ -116,11 +120,11 @@ A numeric argument serves as a repeat count."
   "Amend the last commit."
   (interactive)
   (let ((last (substring (shell-command-to-string
-                          "git log -1 --pretty=oneline --abbrev-commit")
+                          (gitsum-git-command "git log -1 --pretty=oneline --abbrev-commit"))
                          0 -1)))
     (when (y-or-n-p (concat "Are you sure you want to amend to " last "? "))
-      (shell-command-on-region (point-min) (point-max) "git apply --cached")
-      (shell-command "git commit --amend -C HEAD")
+      (shell-command-on-region (point-min) (point-max) (gitsum-git-comand "git apply --cached"))
+      (shell-command (gitsum-git-command "git commit --amend -C HEAD"))
       (gitsum-refresh))))
 
 (defun gitsum-push ()
@@ -140,7 +144,7 @@ A numeric argument serves as a repeat count."
               (format "Are you sure you want to revert these %d hunk(s)? "
                       count)))
         (message "Revert canceled.")
-      (shell-command-on-region (point-min) (point-max) "git apply --reverse")
+      (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --reverse"))
       (gitsum-refresh))))
 
 (defun gitsum-do-commit ()
@@ -148,9 +152,9 @@ A numeric argument serves as a repeat count."
   (interactive)
   (with-current-buffer log-edit-parent-buffer
     (shell-command-on-region (point-min) (point-max)
-                             "git apply --cached"))
+                             (gitsum-git-command "git apply --cached")))
   (shell-command-on-region (point-min) (point-max)
-                           "git commit -F- --cleanup=strip")
+                           (gitsum-git-command "git commit -F- --cleanup=strip"))
   (with-current-buffer log-edit-parent-buffer
     (if gitsum-reuse-buffer
         (gitsum-refresh)
