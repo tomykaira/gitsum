@@ -11,6 +11,9 @@
 
 (eval-when-compile (require 'cl))
 
+;; git.el for `git-get-top-dir'
+(require 'git)
+
 (defcustom gitsum-reuse-buffer t
   "Whether `gitsum' should try to reuse an existing buffer
 if there is already one that displays the same directory."
@@ -194,7 +197,7 @@ A numeric argument serves as a repeat count."
 (defun gitsum ()
   "Entry point into gitsum-diff-mode."
   (interactive)
-  (let* ((dir default-directory)
+  (let* ((dir (git-get-top-dir default-directory))
          (buffer (or (and gitsum-reuse-buffer (gitsum-find-buffer dir))
                      (generate-new-buffer "*gitsum*"))))
     (switch-to-buffer buffer)
