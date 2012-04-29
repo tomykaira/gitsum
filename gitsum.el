@@ -65,7 +65,7 @@ A numeric argument serves as a repeat count."
   (interactive)
   (let ((inhibit-read-only t))
     (erase-buffer)
-    (insert "# Directory:  " default-directory "\n")
+    (insert "# Directory:  " (git-get-top-dir default-directory) "\n")
     (insert "# Use n and p to navigate and k to kill a hunk.  u is undo, g will refresh.\n")
     (insert "# Edit the patch as you please and press 'c' to commit.\n\n")
     (let ((diff (shell-command-to-string (concat "git diff " arguments))))
@@ -98,7 +98,7 @@ A numeric argument serves as a repeat count."
   (interactive)
   (shell-command-on-region (point-min) (point-max) "git apply --check --cached")
   (let ((buffer (get-buffer-create "*gitsum-commit*"))
-        (dir default-directory))
+        (dir (git-get-top-dir default-directory)))
     (shell-command-on-region (point-min) (point-max) "(cat; git diff --cached) | git apply --stat" buffer)
     (with-current-buffer buffer
       (setq default-directory dir)
@@ -166,7 +166,7 @@ A numeric argument serves as a repeat count."
 (defun gitsum-switch-to-git-status ()
   "Switch to git-status."
   (interactive)
-  (git-status default-directory))
+  (git-status (git-get-top-dir default-directory)))
 
 (defun gitsum-switch-from-git-status ()
   "Switch to gitsum, resticting diff to marked files if any."
