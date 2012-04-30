@@ -128,7 +128,7 @@ A numeric argument serves as a repeat count."
                           (gitsum-git-command "git log -1 --pretty=oneline --abbrev-commit"))
                          0 -1)))
     (when (y-or-n-p (concat "Are you sure you want to amend to " last "? "))
-      (shell-command-on-region (point-min) (point-max) (gitsum-git-comand "git apply --cached"))
+      (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --cached"))
       (shell-command (gitsum-git-command "git commit --amend -C HEAD"))
       (gitsum-refresh))))
 
