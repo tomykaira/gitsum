@@ -20,6 +20,11 @@ if there is already one that displays the same directory."
   :group 'git
   :type 'boolean)
 
+(defcustom gitsum-use-elscreen nil
+  "Whether `gitsum' use el-screen."
+  :group 'git
+  :type 'boolean)
+
 (easy-mmode-defmap gitsum-diff-mode-shared-map
   '(("A" . gitsum-amend)
     ("c" . gitsum-commit)
@@ -158,7 +163,9 @@ A numeric argument serves as a repeat count."
   (with-current-buffer log-edit-parent-buffer
     (if gitsum-reuse-buffer
         (gitsum-refresh)
-      (kill-buffer))))
+      (kill-buffer)
+      (if gitsum-use-elscreen
+          (elscreen-kill)))))
 
 (defun gitsum-kill-buffer ()
   "Kill the current buffer if it has no manual changes."
@@ -204,6 +211,8 @@ A numeric argument serves as a repeat count."
   (let* ((dir (git-get-top-dir default-directory))
          (buffer (or (and gitsum-reuse-buffer (gitsum-find-buffer dir))
                      (generate-new-buffer "*gitsum*"))))
+    (if gitsum-use-elscreen
+        (elscreen-create))
     (switch-to-buffer buffer)
     (gitsum-diff-mode)
     (set (make-local-variable 'list-buffers-directory) dir)
