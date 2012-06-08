@@ -25,6 +25,8 @@ if there is already one that displays the same directory."
   :group 'git
   :type 'boolean)
 
+(setq-default gitsum-commit-amend-p nil)
+
 (easy-mmode-defmap gitsum-diff-mode-shared-map
   '(("A" . gitsum-amend)
     ("c" . gitsum-commit)
@@ -102,19 +104,14 @@ A numeric argument serves as a repeat count."
             (when (looking-at "^--- ")
               (delete-region here (point)))))))))
 
-(defun gitsum-commit (&optional type)
+(defun gitsum-commit ()
   "Commit the patch as-is, asking for a commit message."
   (interactive)
   (let ((buffer (get-buffer-create "*gitsum-commit*"))
-        (dir (git-get-top-dir default-directory))
-        (amend (and type (eq type 'amend))))
-    (unless amend
-      (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --check --cached"))
-      (shell-command-on-region (point-min) (point-max) (gitsum-git-command "(cat; git diff --cached) | git apply --stat") buffer))
+        (dir (git-get-top-dir default-directory)))
+    (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --check --cached"))
+    (shell-command-on-region (point-min) (point-max) (gitsum-git-command "(cat; git diff --cached) | git apply --stat") buffer)
     (with-current-buffer buffer
-      (when amend
-        (make-local-variable 'gitsum-commit-amend-p)
-        (setq gitsum-commit-amend-p amend))
       (setq default-directory dir)
       (goto-char (point-min))
       (insert "\n")
@@ -126,16 +123,28 @@ A numeric argument serves as a repeat count."
       (goto-char (point-min)))
     (log-edit 'gitsum-do-commit nil nil buffer)))
 
+(defun gitsum-commit-amend-comment ()
+  "Commit the patch as-is, asking for a commit message."
+  (interactive)
+  (let ((buffer (get-buffer-create "*gitsum-commit*"))
+        (dir (git-get-top-dir default-directory)))
+    (shell-command (gitsum-git-command "git log HEAD --format=\"format:%B\"") buffer)
+    (with-current-buffer buffer
+      (setq default-directory dir)
+      (make-buffer-local 'gitsum-commit-amend-p)
+      (setq gitsum-commit-amend t))
+    (log-edit 'gitsum-do-commit-amend nil nil buffer)))
+
 (defun gitsum-amend ()
   "Amend the last commit."
   (interactive)
   (let ((last (substring (shell-command-to-string
                           (gitsum-git-command "git log -1 --pretty=oneline --abbrev-commit"))
                          0 -1)))
-    (if (y-or-n-p (concat "Amend to " last ", or update comment?"))
+    (if (y-or-n-p (concat "Amend " last ", or change the commit comment?"))
         (progn (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --cached"))
-               (shell-command (gitsum-git-command "git commit --amend -C HEAD")))
-      (gitsum-commit 'amend))
+             (shell-command (gitsum-git-command "git commit --amend -C HEAD")))
+      (gitsum-commit-amend-comment))
     (gitsum-refresh)))
 
 (defun gitsum-push ()
@@ -165,7 +174,7 @@ A numeric argument serves as a repeat count."
     (shell-command-on-region (point-min) (point-max)
                              (gitsum-git-command "git apply --cached")))
   (let ((commit-command
-         (if (and (boundp 'gitsum-commit-amend-p) gitsum-commit-amend-p)
+         (if (buffer-local-value 'gitsum-commit-amend-p (current-buffer))
              (progn (setq gitsum-commit-amend-p nil)
                     "git commit -F- --cleanup=strip --amend")
            "git commit -F- --cleanup=strip")))
