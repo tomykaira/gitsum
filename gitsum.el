@@ -102,14 +102,19 @@ A numeric argument serves as a repeat count."
             (when (looking-at "^--- ")
               (delete-region here (point)))))))))
 
-(defun gitsum-commit ()
+(defun gitsum-commit (&optional type)
   "Commit the patch as-is, asking for a commit message."
   (interactive)
   (let ((buffer (get-buffer-create "*gitsum-commit*"))
-        (dir (git-get-top-dir default-directory)))
-    (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --check --cached"))
-    (shell-command-on-region (point-min) (point-max) (gitsum-git-command "(cat; git diff --cached) | git apply --stat") buffer)
+        (dir (git-get-top-dir default-directory))
+        (amend (and type (eq type 'amend))))
+    (unless amend
+      (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --check --cached"))
+      (shell-command-on-region (point-min) (point-max) (gitsum-git-command "(cat; git diff --cached) | git apply --stat") buffer))
     (with-current-buffer buffer
+      (when amend
+        (make-local-variable 'gitsum-commit-amend-p)
+        (setq gitsum-commit-amend-p amend))
       (setq default-directory dir)
       (goto-char (point-min))
       (insert "\n")
@@ -127,10 +132,11 @@ A numeric argument serves as a repeat count."
   (let ((last (substring (shell-command-to-string
                           (gitsum-git-command "git log -1 --pretty=oneline --abbrev-commit"))
                          0 -1)))
-    (when (y-or-n-p (concat "Are you sure you want to amend to " last "? "))
-      (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --cached"))
-      (shell-command (gitsum-git-command "git commit --amend -C HEAD"))
-      (gitsum-refresh))))
+    (if (y-or-n-p (concat "Amend to " last ", or update comment?"))
+        (progn (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --cached"))
+               (shell-command (gitsum-git-command "git commit --amend -C HEAD")))
+      (gitsum-commit 'amend))
+    (gitsum-refresh)))
 
 (defun gitsum-push ()
   "Push the current repository."
@@ -158,8 +164,13 @@ A numeric argument serves as a repeat count."
   (with-current-buffer log-edit-parent-buffer
     (shell-command-on-region (point-min) (point-max)
                              (gitsum-git-command "git apply --cached")))
-  (shell-command-on-region (point-min) (point-max)
-                           (gitsum-git-command "git commit -F- --cleanup=strip"))
+  (let ((commit-command
+         (if (and (boundp 'gitsum-commit-amend-p) gitsum-commit-amend-p)
+             (progn (setq gitsum-commit-amend-p nil)
+                    "git commit -F- --cleanup=strip --amend")
+           "git commit -F- --cleanup=strip")))
+    (shell-command-on-region (point-min) (point-max)
+                             (gitsum-git-command commit-command))) 
   (with-current-buffer log-edit-parent-buffer
     (if gitsum-reuse-buffer
         (gitsum-refresh)
