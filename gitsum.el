@@ -25,8 +25,6 @@ if there is already one that displays the same directory."
   :group 'git
   :type 'boolean)
 
-(setq-default gitsum-commit-amend-p nil)
-
 (easy-mmode-defmap gitsum-diff-mode-shared-map
   '(("A" . gitsum-amend)
     ("c" . gitsum-commit)
