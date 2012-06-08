@@ -121,19 +121,16 @@ A numeric argument serves as a repeat count."
       (forward-char -1)
       (delete-region (point) (point-max))
       (goto-char (point-min)))
-    (log-edit 'gitsum-do-commit nil nil buffer)))
+    (log-edit `(gitsum-do-commit false) nil nil buffer)))
 
 (defun gitsum-commit-amend-comment ()
-  "Commit the patch as-is, asking for a commit message."
-  (interactive)
+  "Ask for a commit message for commit-amend."
   (let ((buffer (get-buffer-create "*gitsum-commit*"))
         (dir (git-get-top-dir default-directory)))
-    (shell-command (gitsum-git-command "git log HEAD --format=\"format:%B\"") buffer)
+    (shell-command (gitsum-git-command "git log HEAD^..HEAD --format=\"format:%B\"") buffer)
     (with-current-buffer buffer
-      (setq default-directory dir)
-      (make-buffer-local 'gitsum-commit-amend-p)
-      (setq gitsum-commit-amend t))
-    (log-edit 'gitsum-do-commit-amend nil nil buffer)))
+      (setq default-directory dir))
+    (log-edit `(gitsum-do-commit true) nil nil buffer)))
 
 (defun gitsum-amend ()
   "Amend the last commit."
@@ -143,9 +140,9 @@ A numeric argument serves as a repeat count."
                          0 -1)))
     (if (y-or-n-p (concat "Amend " last ", or change the commit comment?"))
         (progn (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --cached"))
-             (shell-command (gitsum-git-command "git commit --amend -C HEAD")))
-      (gitsum-commit-amend-comment))
-    (gitsum-refresh)))
+               (shell-command (gitsum-git-command "git commit --amend -C HEAD"))
+               (gitsum-refresh))
+      (gitsum-commit-amend-comment))))
 
 (defun gitsum-push ()
   "Push the current repository."
@@ -167,25 +164,25 @@ A numeric argument serves as a repeat count."
       (shell-command-on-region (point-min) (point-max) (gitsum-git-command "git apply --reverse"))
       (gitsum-refresh))))
 
-(defun gitsum-do-commit ()
-  "Perform the actual commit using the current buffer as log message."
-  (interactive)
-  (with-current-buffer log-edit-parent-buffer
-    (shell-command-on-region (point-min) (point-max)
-                             (gitsum-git-command "git apply --cached")))
-  (let ((commit-command
-         (if (buffer-local-value 'gitsum-commit-amend-p (current-buffer))
-             (progn (setq gitsum-commit-amend-p nil)
-                    "git commit -F- --cleanup=strip --amend")
-           "git commit -F- --cleanup=strip")))
-    (shell-command-on-region (point-min) (point-max)
-                             (gitsum-git-command commit-command))) 
-  (with-current-buffer log-edit-parent-buffer
-    (if gitsum-reuse-buffer
-        (gitsum-refresh)
-      (kill-buffer)
-      (if gitsum-use-elscreen
-          (elscreen-kill)))))
+(defun gitsum-generate-do-commit (amend)
+  (lambda ()
+    "Perform the actual commit using the current buffer as log message."
+    (interactive)
+    (with-current-buffer log-edit-parent-buffer
+      (shell-command-on-region (point-min) (point-max)
+                               (gitsum-git-command "git apply --cached")))
+    (let ((commit-command
+           (if amend
+               "git commit -F- --cleanup=strip --amend"
+             "git commit -F- --cleanup=strip")))
+      (shell-command-on-region (point-min) (point-max)
+                               (gitsum-git-command commit-command))) 
+    (with-current-buffer log-edit-parent-buffer
+      (if gitsum-reuse-buffer
+          (gitsum-refresh)
+        (kill-buffer)
+        (if gitsum-use-elscreen
+            (elscreen-kill))))))
 
 (defun gitsum-kill-buffer ()
   "Kill the current buffer if it has no manual changes."
