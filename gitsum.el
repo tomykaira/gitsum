@@ -121,7 +121,7 @@ A numeric argument serves as a repeat count."
       (forward-char -1)
       (delete-region (point) (point-max))
       (goto-char (point-min)))
-    (log-edit `(gitsum-do-commit false) nil nil buffer)))
+    (log-edit (gitsum-generate-do-commit nil) nil nil buffer)))
 
 (defun gitsum-commit-amend-comment ()
   "Ask for a commit message for commit-amend."
@@ -130,7 +130,7 @@ A numeric argument serves as a repeat count."
     (shell-command (gitsum-git-command "git log HEAD^..HEAD --format=\"format:%B\"") buffer)
     (with-current-buffer buffer
       (setq default-directory dir))
-    (log-edit `(gitsum-do-commit true) nil nil buffer)))
+    (log-edit (gitsum-generate-do-commit t) nil nil buffer)))
 
 (defun gitsum-amend ()
   "Amend the last commit."
@@ -165,14 +165,14 @@ A numeric argument serves as a repeat count."
       (gitsum-refresh))))
 
 (defun gitsum-generate-do-commit (amend)
-  (lambda ()
+  `(lambda ()
     "Perform the actual commit using the current buffer as log message."
     (interactive)
     (with-current-buffer log-edit-parent-buffer
       (shell-command-on-region (point-min) (point-max)
                                (gitsum-git-command "git apply --cached")))
     (let ((commit-command
-           (if amend
+           (if ,amend
                "git commit -F- --cleanup=strip --amend"
              "git commit -F- --cleanup=strip")))
       (shell-command-on-region (point-min) (point-max)
