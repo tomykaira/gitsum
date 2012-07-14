@@ -69,6 +69,12 @@ A numeric argument serves as a repeat count."
   (let ((dir (git-get-top-dir default-directory)))
     (concat "cd " dir "; " command)))
 
+(defun gitsum-mark-edited-trailing-space ()
+  (goto-char (point-min))
+  (while (re-search-forward "^\\(+\\|-\\).*\\([ \t]+\\)$" nil t)
+    (let ((ov (make-overlay (match-beginning 2) (match-end 2))))
+      (overlay-put ov 'face 'trailing-whitespace))))
+
 (defun gitsum-refresh (&optional arguments)
   "Regenerate the patch based on the current state of the index."
   (interactive)
@@ -82,7 +88,8 @@ A numeric argument serves as a repeat count."
           (insert "## No changes. ##")
         (insert diff)
         (goto-char (point-min))
-        (delete-matching-lines "^index \\|^diff --git ")))
+        (delete-matching-lines "^index \\|^diff --git ")
+        (gitsum-mark-edited-trailing-space)))
     (set-buffer-modified-p nil)
     (goto-char (point-min))
     (forward-line 4)))
@@ -231,7 +238,6 @@ A numeric argument serves as a repeat count."
     (switch-to-buffer buffer)
     (gitsum-diff-mode)
     (set (make-local-variable 'list-buffers-directory) dir)
-    (set (make-local-variable 'show-trailing-whitespace) t)
     (gitsum-refresh)))
 
 ;; viper compatible
