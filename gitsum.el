@@ -81,6 +81,7 @@ A numeric argument serves as a repeat count."
   (let ((inhibit-read-only t))
     (erase-buffer)
     (insert "# Directory:  " (git-get-top-dir default-directory) "\n")
+    (insert "# Branch: " (shell-command-to-string (gitsum-git-command "git symbolic-ref HEAD 2>/dev/null | cut -d/ -f3")))
     (insert "# Use n and p to navigate and k to kill a hunk.  u is undo, g will refresh.\n")
     (insert "# Edit the patch as you please and press 'c' to commit.\n\n")
     (let ((diff (shell-command-to-string (concat "git diff " arguments))))
