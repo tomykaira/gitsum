@@ -154,7 +154,7 @@ A numeric argument serves as a repeat count."
   "Push the current repository."
   (interactive)
   (let ((args (read-string "Shell command: " "git push ")))
-    (let ((buffer (get-buffer-create " *gitsum-push*")))
+    (let ((buffer (generate-new-buffer "*gitsum-push*")))
       (switch-to-buffer buffer)
       (insert "Running " args "...\n\n")
       (start-process-shell-command "gitsum-push" buffer args))))
