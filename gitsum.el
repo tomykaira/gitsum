@@ -154,7 +154,8 @@ A numeric argument serves as a repeat count."
 (defun gitsum-now ()
   "execute git-now from gitsum"
   (interactive)
-  (git-now))
+  (git-now)
+  (gitsum-refresh))
 
 (defun gitsum-push ()
   "Push the current repository."
