@@ -27,6 +27,7 @@ if there is already one that displays the same directory."
 
 (easy-mmode-defmap gitsum-diff-mode-shared-map
   '(("A" . gitsum-amend)
+    ("B" . gitsum-now)
     ("c" . gitsum-commit)
     ("g" . gitsum-refresh)
     ("k" . gitsum-kill-dwim)
@@ -150,6 +151,11 @@ A numeric argument serves as a repeat count."
                (gitsum-refresh))
       (gitsum-commit-amend-comment))))
 
+(defun gitsum-now ()
+  "execute git-now from gitsum"
+  (interactive)
+  (git-now))
+
 (defun gitsum-push ()
   "Push the current repository."
   (interactive)
@@ -182,7 +188,7 @@ A numeric argument serves as a repeat count."
                "git commit -F- --cleanup=strip --amend"
              "git commit -F- --cleanup=strip")))
       (shell-command-on-region (point-min) (point-max)
-                               (gitsum-git-command commit-command))) 
+                               (gitsum-git-command commit-command)))
     (with-current-buffer log-edit-parent-buffer
       (if gitsum-reuse-buffer
           (gitsum-refresh)
