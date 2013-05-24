@@ -46,7 +46,9 @@ This mode is meant to be activated by `M-x gitsum' or pressing `s' in git-status
   ;; magic...
   (lexical-let ((ro-bind (cons 'buffer-read-only gitsum-diff-mode-shared-map)))
     (add-to-list 'minor-mode-overriding-map-alist ro-bind))
-  (setq buffer-read-only t))
+  (setq buffer-read-only t)
+  (make-local-variable 'default-directory)
+  (setq default-directory (git-get-top-dir default-directory)))
 
 (define-key gitsum-diff-mode-map (kbd "C-c C-c") 'gitsum-commit)
 (define-key gitsum-diff-mode-map (kbd "C-/") 'gitsum-undo)
